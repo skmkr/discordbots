@@ -1,0 +1,43 @@
+# 1.依存関係をexportするステージ
+FROM python:3.11-slim-bookworm as exporter
+LABEL stage=exporter
+
+WORKDIR /app
+
+ENV POETRY_VERSION=1.8.2
+
+RUN apt-get update && apt-get install -y pipx 
+
+RUN pipx install poetry
+COPY ./src/discord_bot/gpt/pyproject.toml ./src/discord_bot/gpt/poetry.lock* /app/
+
+# PATH 環境変数の設定
+ENV PATH /root/.local/bin:$PATH
+
+# poetry.lockがまだなければ生成する
+RUN pipx inject poetry poetry-plugin-export && poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+# 2.パッケージをインストールするステージ
+FROM python:3.11-slim-bookworm as builder
+LABEL stage=builder
+
+
+COPY --from=exporter /app/requirements.txt /app/
+WORKDIR /app
+RUN pip install --user -r requirements.txt
+
+# アプリケーションのソースコードもここでコピー
+COPY ./src/discord_bot/gpt /app
+
+# 3.実行ステージ
+FROM gcr.io/distroless/python3-debian12
+
+COPY --from=builder /root/.local /root/.local
+COPY --from=builder /app /app
+WORKDIR /app
+
+# PYTHONPATHを設定
+ENV PYTHONPATH=/root/.local/lib/python3.11/site-packages
+
+#gcr.io/distroless/python3-debian12のEntryPointはpythonなのでコマンドで直接ファイルを指定する。
+CMD ["gptbot.py"]

@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  dev:
+    build: .
+    image: discordbot_dev
+    environment:
+      - USER_ID=1000
+      - GROUP_ID=1000
+    volumes:
+      - ../src/discord_bot:/app
+    tty: true

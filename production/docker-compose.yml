@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  prod:
+    container_name: discordbot_chatgpt_prod
+    build: 
+      context: ..
+      dockerfile: ./production/Dockerfile_gpt
+    image: gptbod:prod
+    volumes:
+      - ../logs:/app/logs
+
